@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+            <title>
+                d3.chart.sankey (interactive demo)
+            </title>
+            <script src="//d3js.org/d3.v3.min.js">
+            </script>
+            <script src="//cdn.rawgit.com/newrelic-forks/d3-plugins-sankey/master/sankey.js">
+            </script>
+            <script src="//cdn.rawgit.com/misoproject/d3.chart/master/d3.chart.min.js">
+            </script>
+            <script src="//cdn.rawgit.com/q-m/d3.chart.sankey/master/d3.chart.sankey.min.js">
+            </script>
+            <style>
+                body {
+        width: 960px;
+        margin: auto;
+      }
+      #title{
+        font-size: 10px;
+        font-family:monospace; 
+      }
+      #chart {
+        width: 960px;
+        height: 7000px;
+        clear: both;
+      }
+      .node rect {
+        fill-opacity: .9;
+        shape-rendering: crispEdges;
+      }
+      .node text {
+        text-shadow: 0 1px 0 #fff;
+        font-size: 9px;
+        font-family:monospace; 
+      }
+      .link {
+        fill: none;
+        stroke: #000;
+        stroke-opacity: .2;
+      }
+      .control               { float: left; padding: 6px; }
+      .control label         { display: block; }
+      .control input         { width: 2.5em; }
+      .control button        { border: outset 2px; }
+      .control button.active { border: inset 2px; }
+    
+      #events {
+        height: 15ex;
+        overflow-y: scroll;
+        color: #444;
+        font-family: monospace;
+        border: 1px solid #eee;
+      }
+      #events span:first-child {
+        width: 10em;
+        display: inline-block;
+      }
+            </style>
+        </meta>
+    </head>
+    <body>       
+
+<div id="title">
+  <h1>Rhino 6.16 Command/Options Association</h1>
+        </div>
+      <div id="chart">
+        </div>
+        <div class="controls">
+            <div class="control">
+                <label for="source">
+                    data
+                </label>
+                <select id="source" >
+                    <option value="foo.json">
+                        foo.json
+                    </option>
+                    <option value="//cdn.rawgit.com/q-m/d3.chart.sankey/master/example/data/energy.json">
+                        energy.json
+                    </option>
+                    <option value="//cdn.rawgit.com/q-m/d3.chart.sankey/master/example/data/product.json">
+                        product.json
+                    </option>
+                </select>
+            </div>
+            <div class="control">
+                <label for="nodeWidth">
+                    nodeWidth
+                </label>
+                <input id="nodeWidth" min="0" step="1" type="number" value="5">
+                </input>
+            </div>
+            <div class="control">
+                <label for="nodePadding">
+                    nodePadding
+                </label>
+                <input id="nodePadding" min="0" step="1" type="number" value="6">
+                </input>
+            </div>
+            <div class="control">
+                <label for="iterations">
+                    iterations
+                </label>
+                <input id="iterations" min="0" step="1" type="number" value="0">
+                    <button id="rewind">
+                        «
+                    </button>
+                    <button id="play">
+                        ▶
+                    </button>
+                </input>
+            </div>
+            <div class="control">
+                <label for="spread">
+                    spread
+                </label>
+                <input id="spread" type="checkbox" value="1" checked>
+                </input>
+            </div>
+            <div class="control" >
+                <label for="type">
+                    Chart
+                </label>
+                <select id="type" value="2">
+                    <option>
+                        Sankey
+                    </option>
+                    <option>
+                        Sankey.Selection
+                    </option>
+                    <option selected="selected">
+                        Sankey.Path
+                    </option>
+                </select>
+            </div>
+        </div>
+
+        <script>
+            var chart = null;
+          timer = null;
+
+      d3.selectAll(".controls input").on("change", updateKnobs);
+      d3.select("#source").on("change", updateSource);
+      d3.select("#type").on("change", updateType)
+      d3.select("#rewind").on("click", function() {
+        numberControl("iterations", 0);
+      })
+      d3.select("#play").on("click", function() {
+        if (timer !== null) {
+          clearInterval(timer); timer = null;
+        } else {
+          timer = setInterval(function() {
+            numberControl("iterations", numberControl("iterations") + 1);
+            return true;
+          }, 200);
+        }
+        d3.select(this).classed("active", timer !== null);
+      })
+
+      function updateKnobs() {
+        chart
+          .nodeWidth(numberControl("nodeWidth"))
+          .nodePadding(numberControl("nodePadding"))
+          .iterations(numberControl("iterations"))
+          .spread(checkControl("spread"));
+      }
+
+      function updateSource() {
+        d3.json(d3.select("#source").node().value, function(error, json) {
+          chart.draw(json);
+        });
+      }
+
+      function updateType() {
+        var type = d3.select("#type").node().value;
+        d3.select("#chart svg").remove();
+        chart = d3.select("#chart").append("svg").chart(type);
+        ["click", "mouseover", "mouseout"].forEach(function(evt) {
+          chart.on("node:"+evt, function(node) { logEvent("node:"+evt, node.name); });
+          chart.on("link:"+evt, function(link) { logEvent("link:"+evt, link.source.name+" → "+link.target.name); });
+        });
+        updateKnobs();
+        updateSource();
+      }
+
+      function numberControl(id, value) {
+        var o = d3.select("#"+id);
+        if (typeof value !== "undefined") {
+          o.node().value = String(value);
+          updateKnobs();
+        }
+        return Number(o.node().value);
+      }
+
+      function checkControl(id, value) {
+        var o = d3.select("#"+id);
+        if (typeof value !== "undefined") {
+          o.node().checked = value;
+          updateKnobs();
+        }
+        return o.node().checked;
+      }    
+      updateType();
+        </script>
+    </body>
+</html>
